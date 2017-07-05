@@ -6,6 +6,7 @@ import {
     CognitoUserAttribute, 
     CognitoUserPool 
 } from './lib/aws-cognito-identity';
+import * as AWS from 'aws-sdk/dist/aws-sdk-react-native';
 
 export default class App extends React.Component {
 
@@ -19,7 +20,7 @@ export default class App extends React.Component {
     console.log('auth starting');
     var authenticationData = {
         Username : '',
-        Password : '',
+        Password : ''
     };
     var authenticationDetails = new AuthenticationDetails(authenticationData);
     var poolData = {
@@ -35,9 +36,32 @@ export default class App extends React.Component {
     var self = this;
     cognitoUser.authenticateUser(authenticationDetails, {
         onSuccess: function (result) {
-            let tok = result.getAccessToken().getJwtToken();
+            let tok = result.getIdToken().getJwtToken();
             console.log(tok);
             self.setState({ ...self.state, token: tok });
+
+            AWS.config.region = '';
+
+            AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+                IdentityPoolId : '', // your identity pool id here
+                Logins : {
+                    // Change the key below according to the specific region your user pool is in.
+                    '' : tok
+                }
+            });
+
+            AWS.config.credentials.get(function () {
+              var accessKeyId = AWS.config.credentials.accessKeyId;
+              var secretKey = AWS.config.credentials.secretAccessKey;
+              var sessionToken = AWS.config.credentials.sessionToken;
+
+              self.setState({ ...self.state, accessKeyId, secretKey, sessionToken });
+
+              console.log(AWS.config.credentials.identityId);
+              console.log(accessKeyId);
+              console.log(secretKey);
+              console.log(sessionToken);
+            });            
         },
 
         onFailure: function(err) {
